@@ -1,0 +1,43 @@
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare project directory
+        run: |
+          if [ ! -f "settings.gradle.kts" ] && [ ! -d "AirPodsConnect" ]; then
+            unzip -o "*.zip" || true
+          fi
+          PROJ_DIR=$(find . -maxdepth 3 -name "settings.gradle.kts" -printf '%h\n' | head -n 1)
+          echo "Found project dir: $PROJ_DIR"
+          test -n "$PROJ_DIR"
+          echo "PROJ_DIR=$PROJ_DIR" >> "$GITHUB_ENV"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Debug APK
+        run: gradle -p "$PROJ_DIR" assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AirPodsConnect-debug-apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
+          
